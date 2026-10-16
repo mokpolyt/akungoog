@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Google Accounts Collection (Supabase)</title>
+<style>
+:root{--bg:#e9edf1;--surface:#fff;--ink:#1a2330;--muted:#5d6b7c;--line:#cfd7e0;--accent:#2b5c8f;--accent-ink:#fff;--danger:#b3372b;box-sizing:border-box}
+@media (prefers-color-scheme:dark){:root{--bg:#10161e;--surface:#18212c;--ink:#e6ebf1;--muted:#92a0b2;--line:#2a3544;--accent:#6aa3dc;--accent-ink:#0c1520;--danger:#ef7d70;color-scheme:dark}}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+button,input,textarea{font:inherit;color:inherit}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#login{min-height:100vh;display:grid;place-items:center;padding:20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:28px;width:100%;max-width:380px}
+.panel h1{font-size:1.5rem;margin:0 0 4px}
+.panel p{margin:0 0 20px;color:var(--muted)}
+label{display:block;font-weight:600;font-size:.9rem;margin:14px 0 5px}
+input,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:4px;background:var(--bg)}
+input:focus,textarea:focus{border-color:var(--accent)}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:4px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--danger)}
+.btn.small{padding:5px 10px;font-size:.85rem}
+.btn.link{border:0;background:none;color:var(--accent);padding:0;margin-top:14px;font-weight:600}
+.full{width:100%;margin-top:20px}
+.err{color:var(--danger);font-size:.9rem;margin-top:12px;min-height:1.3em;overflow-wrap:anywhere}
+header.bar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar-in{max-width:960px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bar h1{font-size:1.15rem;margin:0;flex:1;min-width:160px}
+.count{color:var(--muted);font-weight:400;margin-left:6px}
+main{max-width:960px;margin:0 auto;padding:20px}
+.tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.tools input{flex:1;min-width:180px}
+.table{background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.row{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 16px;border-top:1px solid var(--line)}
+.row.head{background:var(--bg);font-size:.85rem;font-weight:600;color:var(--muted);border-top:0}
+.cell-id{font-weight:600;overflow-wrap:anywhere}
+.note{display:block;font-weight:400;color:var(--muted);font-size:.85rem;overflow-wrap:anywhere}
+.pw span{overflow-wrap:anywhere}
+.acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.empty{padding:36px 20px;text-align:center;color:var(--muted)}
+.empty strong{display:block;color:var(--ink);margin-bottom:4px}
+@media (max-width:620px){.row{grid-template-columns:1fr}.row.head{display:none}.acts{justify-content:flex-start}}
+dialog{border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);padding:24px;width:min(440px,calc(100% - 32px))}
+dialog::backdrop{background:rgba(10,16,24,.55)}
+dialog h2{margin:0 0 4px;font-size:1.2rem}
+dialog p{margin:0;color:var(--muted);font-size:.9rem}
+.dlg-acts{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:4px;font-size:.9rem;z-index:20}
+</style>
+</head>
+<body>
+
+<section id="login">
+  <div class="panel">
+    <h1>Google Accounts</h1>
+    <p>Log in to open your account collection.</p>
+    <label for="lu">ID</label>
+    <input id="lu" autocomplete="username" autocapitalize="none" spellcheck="false">
+    <label for="lp">Password</label>
+    <input id="lp" type="password" autocomplete="current-password">
+    <div class="err" id="lerr" role="alert"></div>
+    <button class="btn primary full" id="lbtn" type="button">Log in</button>
+    <button class="btn link" id="cfg1" type="button">Supabase settings</button>
+  </div>
+</section>
+
+<div id="app" hidden>
+  <header class="bar"><div class="bar-in">
+    <h1>Google Accounts<span class="count" id="count"></span></h1>
+    <button class="btn small" id="cfg2" type="button">Supabase settings</button>
+    <button class="btn small" id="out" type="button">Log out</button>
+  </div></header>
+  <main>
+    <div class="tools">
+      <input id="q" type="search" placeholder="Search by email or note" aria-label="Search accounts">
+      <button class="btn primary" id="add" type="button">Add account</button>
+    </div>
+    <div class="err" id="gerr" role="alert" style="margin:0 0 12px"></div>
+    <div class="table" id="list"></div>
+  </main>
+</div>
+
+<dialog id="dlg">
+  <h2 id="dt">Add account</h2>
+  <label for="fe">Google ID (email)</label>
+  <input id="fe" type="email" autocapitalize="none" spellcheck="false" placeholder="name@gmail.com">
+  <label for="fp">Password</label>
+  <input id="fp" class="mono" type="text" autocomplete="off" spellcheck="false">
+  <label for="fn">Note (optional)</label>
+  <textarea id="fn" rows="2" placeholder="e.g. work, recovery phone"></textarea>
+  <div class="err" id="ferr" role="alert"></div>
+  <div class="dlg-acts">
+    <button class="btn" id="cancel" type="button">Cancel</button>
+    <button class="btn primary" id="save" type="button">Save account</button>
+  </div>
+</dialog>
+
+<dialog id="cfg">
+  <h2>Supabase settings</h2>
+  <p>Find both in Supabase: Project Settings &gt; API. Values are saved in this browser.</p>
+  <label for="su">Supabase URL</label>
+  <input id="su" class="mono" type="url" autocapitalize="none" spellcheck="false" placeholder="https://xxxx.supabase.co">
+  <label for="sk">Anon key</label>
+  <input id="sk" class="mono" type="text" autocapitalize="none" spellcheck="false" placeholder="eyJhbGciOi...">
+  <div class="err" id="serr" role="alert"></div>
+  <div class="dlg-acts">
+    <button class="btn" id="scancel" type="button">Cancel</button>
+    <button class="btn primary" id="ssave" type="button">Save settings</button>
+  </div>
+</dialog>
+
+<div id="toast" hidden></div>
+
+<script>
+(function(){
+  // Option 1: paste your values here. Option 2: use the "Supabase settings" button in the app.
+  var SUPABASE_URL = "https://gjyeknwtoofpuvoaftfj.supabase.co";       // e.g. "https://xxxx.supabase.co"
+  var SUPABASE_ANON_KEY = "sb_publishable_HBf14rn-fWP8AZ_OaLFfag_V6qNKjk5";  // your anon / public key
+
+  var USER='bongkar', PASS='bongkar', TABLE='google_accounts';
+  var CKEY='gaccounts:supabase', SKEY='gaccounts:session';
+  var $=function(id){return document.getElementById(id)};
+  var accounts=[], editId=null, shown={}, memSession=false, memCfg=null;
+
+  function getCfg(){
+    var c=null;
+    try{c=JSON.parse(localStorage.getItem(CKEY)||'null')}catch(e){}
+    c=c||memCfg||{};
+    return {url:(c.url||SUPABASE_URL||'').replace(/\/+$/,''),key:c.key||SUPABASE_ANON_KEY||''};
+  }
+  function setCfg(url,key){
+    memCfg={url:url,key:key};
+    try{localStorage.setItem(CKEY,JSON.stringify(memCfg))}catch(e){}
+  }
+  function getSession(){try{return sessionStorage.getItem(SKEY)==='1'}catch(e){return memSession}}
+  function setSession(v){memSession=v;try{v?sessionStorage.setItem(SKEY,'1'):sessionStorage.removeItem(SKEY)}catch(e){}}
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  var tt;
+  function toast(m){var t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(function(){t.hidden=true},1800)}
+
+  // ---- Supabase REST (PostgREST) ----
+  async function api(method,query,body){
+    var c=getCfg();
+    if(!c.url||!c.key){throw new Error('Supabase URL and anon key are not set. Select Supabase settings and enter both.')}
+    var res=await fetch(c.url+'/rest/v1/'+TABLE+(query||''),{
+      method:method,
+      headers:{apikey:c.key,Authorization:'Bearer '+c.key,'Content-Type':'application/json',Prefer:'return=representation'},
+      body:body?JSON.stringify(body):undefined
+    });
+    var txt=await res.text(),data=null;
+    try{data=txt?JSON.parse(txt):null}catch(e){}
+    if(!res.ok){
+      var err=new Error((data&&(data.message||data.error))||('Request failed ('+res.status+')'));
+      err.code=data&&data.code;err.status=res.status;throw err;
+    }
+    return data;
+  }
+  function showErr(e){
+    var m=e&&e.message?e.message:String(e);
+    if(e&&e.code==='42P01')m='Table google_accounts not found. Run supabase-setup.sql in the Supabase SQL Editor.';
+    if(e&&e.name==='TypeError')m='Could not reach Supabase. Check the URL and your internet connection.';
+    $('gerr').textContent=m;
+  }
+
+  async function refresh(){
+    $('gerr').textContent='';
+    try{accounts=await api('GET','?select=*&order=created_at.desc')||[]}
+    catch(e){accounts=[];showErr(e)}
+    render();
+  }
+
+  function render(){
+    var q=$('q').value.trim().toLowerCase();
+    var rows=accounts.filter(function(a){return !q||a.email.toLowerCase().indexOf(q)>-1||(a.note||'').toLowerCase().indexOf(q)>-1});
+    $('count').textContent=accounts.length?'('+accounts.length+')':'';
+    var box=$('list');
+    if(!rows.length){
+      box.innerHTML='<div class="empty"><strong>'+(accounts.length?'No matching accounts':'No accounts yet')+'</strong>'+(accounts.length?'Try a different search.':'Select Add account to save your first Google ID and password.')+'</div>';
+      return;
+    }
+    var h='<div class="row head"><div>Google ID</div><div>Password</div><div></div></div>';
+    rows.forEach(function(a){
+      var vis=shown[a.id];
+      h+='<div class="row"><div class="cell-id">'+esc(a.email)+(a.note?'<span class="note">'+esc(a.note)+'</span>':'')+'</div>'
+      +'<div class="pw mono"><span>'+(vis?esc(a.password):'\u2022'.repeat(Math.min(Math.max(a.password.length,6),14)))+'</span></div>'
+      +'<div class="acts">'
+      +'<button class="btn small" data-a="show" data-id="'+a.id+'">'+(vis?'Hide':'Show')+'</button>'
+      +'<button class="btn small" data-a="copy" data-id="'+a.id+'">Copy</button>'
+      +'<button class="btn small" data-a="edit" data-id="'+a.id+'">Edit</button>'
+      +'<button class="btn small danger" data-a="del" data-id="'+a.id+'">Delete</button>'
+      +'</div></div>';
+    });
+    box.innerHTML=h;
+  }
+
+  // ---- login ----
+  function enter(){$('login').hidden=true;$('app').hidden=false;refresh()}
+  function login(){
+    if($('lu').value.trim()===USER&&$('lp').value===PASS){setSession(true);$('lerr').textContent='';$('lp').value='';enter()}
+    else $('lerr').textContent='ID or password is wrong. Check both and try again.';
+  }
+  $('lbtn').onclick=login;
+  $('lp').onkeydown=$('lu').onkeydown=function(e){if(e.key==='Enter')login()};
+  $('out').onclick=function(){setSession(false);shown={};$('app').hidden=true;$('login').hidden=false;$('lu').focus()};
+
+  // ---- settings dialog ----
+  function openCfg(){var c=getCfg();$('su').value=c.url;$('sk').value=c.key;$('serr').textContent='';$('cfg').showModal();$('su').focus()}
+  $('cfg1').onclick=$('cfg2').onclick=openCfg;
+  $('scancel').onclick=function(){$('cfg').close()};
+  $('ssave').onclick=function(){
+    var u=$('su').value.trim().replace(/\/+$/,''),k=$('sk').value.trim();
+    if(!/^https?:\/\/.+/.test(u)){$('serr').textContent='Enter the full Supabase URL, starting with https://';return}
+    if(!k){$('serr').textContent='Enter the anon key.';return}
+    setCfg(u,k);$('cfg').close();toast('Settings saved');
+    if(!$('app').hidden)refresh();
+  };
+
+  // ---- account dialog ----
+  function openDlg(a){
+    editId=a?a.id:null;
+    $('dt').textContent=a?'Edit account':'Add account';
+    $('fe').value=a?a.email:'';$('fp').value=a?a.password:'';$('fn').value=a?(a.note||''):'';
+    $('ferr').textContent='';$('dlg').showModal();$('fe').focus();
+  }
+  $('add').onclick=function(){openDlg(null)};
+  $('cancel').onclick=function(){$('dlg').close()};
+  $('save').onclick=async function(){
+    var e=$('fe').value.trim(),p=$('fp').value,n=$('fn').value.trim();
+    if(!e){$('ferr').textContent='Enter the Google ID (email).';return}
+    if(!p){$('ferr').textContent='Enter the password.';return}
+    var btn=$('save');btn.disabled=true;
+    try{
+      if(editId){await api('PATCH','?id=eq.'+encodeURIComponent(editId),{email:e,password:p,note:n||null});toast('Account updated')}
+      else{await api('POST','',{email:e,password:p,note:n||null});toast('Account added')}
+      $('dlg').close();refresh();
+    }catch(err){
+      $('ferr').textContent=(err.code==='23505')?'This Google ID is already saved. Edit the existing entry instead.':(err.name==='TypeError'?'Could not reach Supabase. Check the URL and your internet connection.':err.message);
+    }
+    btn.disabled=false;
+  };
+
+  $('list').onclick=async function(ev){
+    var b=ev.target.closest('button[data-a]');if(!b)return;
+    var id=b.getAttribute('data-id'),act=b.getAttribute('data-a');
+    var a=accounts.filter(function(x){return x.id===id})[0];if(!a)return;
+    if(act==='show'){shown[id]=!shown[id];render()}
+    else if(act==='edit'){openDlg(a)}
+    else if(act==='del'){
+      if(confirm('Delete '+a.email+'? This cannot be undone.')){
+        try{await api('DELETE','?id=eq.'+encodeURIComponent(id));toast('Account deleted');refresh()}catch(err){showErr(err)}
+      }
+    }else if(act==='copy'){
+      var done=function(){toast('Password copied')};
+      var fb=function(){
+        var t=document.createElement('textarea');t.value=a.password;document.body.appendChild(t);t.select();
+        try{document.execCommand('copy');done()}catch(e){toast('Copy failed. Use Show and copy it manually.')}
+        document.body.removeChild(t);
+      };
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(a.password).then(done,fb)}else{fb()}
+    }
+  };
+  $('q').oninput=render;
+
+  if(getSession())enter();else $('lu').focus();
+})();
+</script>
+</body>
+</html>
